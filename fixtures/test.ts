@@ -38,19 +38,38 @@ function uniqueUsername(): string {
   return `pw${Date.now().toString(36)}${randomBytes(3).toString('hex')}`;
 }
 
+/**
+ * The public demo sits behind a bot check that interrupts automated traffic, far more often
+ * from CI runners than from a home connection. Give it a moment to clear on its own; if it
+ * does not, skip the test: it is an environment issue, not an app failure, and a skip is not
+ * retried, so a blocked run does not burn the full timeout three times over.
+ */
+async function skipIfBotCheck(page: Page, user: UserData, when: string) {
+  const botCheck = page.getByRole('heading', { name: 'Performing security verification' });
+  if (!(await botCheck.isVisible())) return;
+  await expect(botCheck).toBeHidden().catch(() => {});
+  test.skip(
+    await botCheck.isVisible(),
+    `Registration of ${user.username} was blocked by the site's bot check ${when} (environment issue, not an app failure).`,
+  );
+}
+
 async function registerThroughUi(page: Page, user: UserData) {
   const registerPage = new RegisterPage(page);
-  await registerPage.register(user);
+  const botCheck = page.getByRole('heading', { name: 'Performing security verification' });
+
+  await registerPage.goto();
+  const firstName = registerPage.field('First Name:');
+  await expect(firstName.or(botCheck), 'register page did not load').toBeVisible();
+  await skipIfBotCheck(page, user, 'on the register page');
+
+  await registerPage.fillForm(user);
+  await registerPage.registerButton.click();
 
   const welcome = registerPage.welcomeHeading(user.username);
-  // The public demo sits behind a bot check that occasionally interrupts automated traffic.
-  const botCheck = page.getByRole('heading', { name: 'Performing security verification' });
   await expect(welcome.or(botCheck), `registration of ${user.username} failed`).toBeVisible();
-  if (await botCheck.isVisible()) {
-    throw new Error(
-      `Registration of ${user.username} was blocked by the site's bot check (environment issue, not an app failure).`,
-    );
-  }
+  await skipIfBotCheck(page, user, 'after submitting');
+  await expect(welcome, `registration of ${user.username} failed`).toBeVisible();
 }
 
 export const test = base.extend<Fixtures>({
