@@ -4,6 +4,9 @@ import { RegisterPage, type UserData } from '../pages/RegisterPage';
 import { LoginPage } from '../pages/LoginPage';
 import { AccountsOverviewPage } from '../pages/AccountsOverviewPage';
 import { OpenAccountPage } from '../pages/OpenAccountPage';
+import { TransferFundsPage } from '../pages/TransferFundsPage';
+import { BillPayPage } from '../pages/BillPayPage';
+import { RequestLoanPage } from '../pages/RequestLoanPage';
 
 type Fixtures = {
   /** Unique user data for this test; not registered yet. */
@@ -12,10 +15,18 @@ type Fixtures = {
   registeredUser: UserData;
   /** The test's `page`, logged in as `newUser` (registered through the UI). */
   loggedInPage: Page;
+  /**
+   * Logged in as `newUser` with two accounts: the default one created at registration and a
+   * second CHECKING account opened from it (which moves the $100 minimum deposit into it).
+   */
+  twoAccounts: { primaryId: string; secondaryId: string };
   registerPage: RegisterPage;
   loginPage: LoginPage;
   accountsOverviewPage: AccountsOverviewPage;
   openAccountPage: OpenAccountPage;
+  transferFundsPage: TransferFundsPage;
+  billPayPage: BillPayPage;
+  requestLoanPage: RequestLoanPage;
 };
 
 function uniqueUsername(): string {
@@ -71,10 +82,25 @@ export const test = base.extend<Fixtures>({
     await use(page);
   },
 
+  twoAccounts: async ({ loggedInPage }, use) => {
+    const overview = new AccountsOverviewPage(loggedInPage);
+    await overview.goto();
+    await expect(overview.accountLinks).toHaveCount(1);
+    const primaryId = (await overview.accountLinks.innerText()).trim();
+
+    const openAccount = new OpenAccountPage(loggedInPage);
+    await openAccount.goto();
+    const secondaryId = await openAccount.openAccount('CHECKING', primaryId);
+    await use({ primaryId, secondaryId });
+  },
+
   registerPage: async ({ page }, use) => use(new RegisterPage(page)),
   loginPage: async ({ page }, use) => use(new LoginPage(page)),
   accountsOverviewPage: async ({ page }, use) => use(new AccountsOverviewPage(page)),
   openAccountPage: async ({ page }, use) => use(new OpenAccountPage(page)),
+  transferFundsPage: async ({ page }, use) => use(new TransferFundsPage(page)),
+  billPayPage: async ({ page }, use) => use(new BillPayPage(page)),
+  requestLoanPage: async ({ page }, use) => use(new RequestLoanPage(page)),
 });
 
 export { expect };

@@ -5,7 +5,7 @@ test.describe('Login', () => {
     await loginPage.goto();
   });
 
-  test('valid credentials open the accounts overview', async ({
+  test('valid credentials open the accounts overview', { tag: '@smoke' }, async ({
     page,
     registeredUser,
     loginPage,
@@ -21,7 +21,7 @@ test.describe('Login', () => {
     await expect(loginPage.logoutLink).toBeVisible();
   });
 
-  test('invalid password is rejected', async ({ registeredUser, loginPage }) => {
+  test('invalid password is rejected', { tag: '@regression' }, async ({ registeredUser, loginPage }) => {
     await loginPage.login(registeredUser.username, `${registeredUser.password}-wrong`);
 
     await expect(loginPage.errorHeading).toBeVisible();
@@ -31,7 +31,7 @@ test.describe('Login', () => {
     await expect(loginPage.logoutLink).toBeHidden();
   });
 
-  test('empty username and password are rejected', async ({ loginPage }) => {
+  test('empty username and password are rejected', { tag: '@regression' }, async ({ loginPage }) => {
     await loginPage.login('', '');
 
     await expect(loginPage.errorHeading).toBeVisible();

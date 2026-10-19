@@ -1,4 +1,5 @@
 import { type Locator, type Page } from '@playwright/test';
+import { formRow } from './formRow';
 
 export type UserData = {
   firstName: string;
@@ -26,16 +27,8 @@ export class RegisterPage {
     await this.page.goto('register.htm');
   }
 
-  /**
-   * The register form has no <label> elements: each label is a sibling table cell.
-   * Anchoring on the label cell (rather than the row name) keeps working when
-   * a validation message is rendered into the same row.
-   */
   field(label: string): Locator {
-    return this.page
-      .getByRole('row')
-      .filter({ has: this.page.getByRole('cell', { name: label, exact: true }) })
-      .getByRole('textbox');
+    return formRow(this.page, label).getByRole('textbox');
   }
 
   async fillForm(user: UserData, confirmPassword = user.password) {

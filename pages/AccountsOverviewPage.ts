@@ -1,4 +1,5 @@
 import { type Locator, type Page } from '@playwright/test';
+import { parseCurrency } from '../utils/money';
 
 export class AccountsOverviewPage {
   readonly page: Page;
@@ -35,5 +36,14 @@ export class AccountsOverviewPage {
     return this.accountsTable
       .getByRole('row')
       .filter({ has: this.page.getByRole('link', { name: accountId, exact: true }) });
+  }
+
+  /** The "Balance*" cell (second column) of an account's row. */
+  balanceCell(accountId: string): Locator {
+    return this.accountRow(accountId).getByRole('cell').nth(1);
+  }
+
+  async balanceOf(accountId: string): Promise<number> {
+    return parseCurrency(await this.balanceCell(accountId).innerText());
   }
 }

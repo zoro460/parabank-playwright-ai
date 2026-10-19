@@ -25,7 +25,9 @@ defects; tests for them should assert the *correct* behaviour and be tagged
   healthy instance, a wrong password correctly shows
   *"The username and password could not be verified."*
 - **Account IDs collide across resets.** Account `18783`, created for a wiped user,
-  later showed up in a different user's overview.
+  later showed up in a different user's overview. Brand-new users' default accounts
+  have also started at $415.50 / $515.50 instead of $100.00. Balance assertions
+  must compare against values read just before the action, never hard-coded totals.
 - **Registration inputs have no accessible labels.** The label text sits in a
   sibling `<td>`, so `getByLabel` won't work. Stable hooks are the `id`/`name`
   attributes (`customer.firstName`, `customer.address.street`, `repeatedPassword`, …).
@@ -127,7 +129,7 @@ Screens: `13-bill-pay.png`, `14-bill-pay-validation-errors.png`,
 | # | Type | Scenario | Expected |
 |---|------|----------|----------|
 | BP1 | P | All payee fields valid, Account # = Verify Account #, valid amount | "Bill Payment Complete. Bill Payment to {payee} in the amount of ${amt} from account {id} was successful." |
-| BP2 | P | Balance of the From account decreases by the amount; activity shows a Bill Payment debit | ⚠️ Observed: success shown, but balance stayed $100.00 and no transaction was recorded (may be instance instability; verify) |
+| BP2 | P | Balance of the From account decreases by the amount; activity shows a Bill Payment debit | Verified on a healthy instance ($100 → $85). An earlier no-op run was caused by a data reset |
 | BP3 | N | Submit empty | 9 errors: Payee name / Address / City / State / Zip Code / Phone number / Account number (×2) are required; "The amount cannot be empty." |
 | BP4 | N | Account # ≠ Verify Account # | "The account numbers do not match." |
 | BP5 | N | Non-numeric Account / Verify | "Please enter a valid number." |
@@ -224,5 +226,5 @@ Fields: Loan Amount (`#amount`), Down Payment (`#downPayment`), From account
 | D8 | Find Tx | Unknown ID shows an empty table with no message |
 | D9 | Auth | Unauthenticated access to protected pages shows an internal error instead of redirecting |
 | D10 | Auth | During resets, any credentials logged into another customer's account (intermittent) |
-| D11 | Bill Pay | Success shown but balance and transaction history unchanged (intermittent; verify) |
+| D11 | Bill Pay | ~~Success shown but balance unchanged~~. Not reproducible on a healthy instance; it was a data reset |
 | D12 | A11y | Registration inputs have no programmatic labels (Bill Pay and other forms likely the same, not yet checked) |
