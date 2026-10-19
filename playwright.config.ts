@@ -39,18 +39,33 @@ export default defineConfig({
 
   /* Configure projects for major browsers */
   projects: [
+    /* API tests run once, not per browser. They still use Chromium where a page is needed
+       (e.g. registering a user, or UI + API checks). */
+    {
+      name: 'api',
+      testMatch: 'api/**/*.spec.ts',
+      // API calls are fast enough to trip Cloudflare's rate limit; run them one at a time,
+      // with room for a server-requested back-off (see ParaBankApi.send).
+      workers: 1,
+      timeout: 120_000,
+      use: { ...devices['Desktop Chrome'] },
+    },
+
     {
       name: 'chromium',
+      testIgnore: 'api/**',
       use: { ...devices['Desktop Chrome'] },
     },
 
     {
       name: 'firefox',
+      testIgnore: 'api/**',
       use: { ...devices['Desktop Firefox'] },
     },
 
     {
       name: 'webkit',
+      testIgnore: 'api/**',
       use: { ...devices['Desktop Safari'] },
     },
 

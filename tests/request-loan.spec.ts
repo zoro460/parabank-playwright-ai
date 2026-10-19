@@ -20,7 +20,9 @@ test.describe('Request Loan', () => {
     await requestLoanPage.apply('200', '20', accountId);
 
     await expect(requestLoanPage.resultHeading).toBeVisible();
-    await expect(requestLoanPage.providerCell).toHaveText('ParaBank');
+    // The provider is a site-wide setting anyone can change on the shared demo (admin page /
+    // setParameter), e.g. "ParaBank" or "Wealth Securities Dynamic Loans (WSDL)".
+    await expect(requestLoanPage.providerCell).not.toBeEmpty();
     await expect(requestLoanPage.dateCell).toHaveText(/^\d{2}-\d{2}-\d{4}$/);
     await expect(requestLoanPage.statusCell).toHaveText('Approved');
     await expect(requestLoanPage.approvedMessage).toBeVisible();

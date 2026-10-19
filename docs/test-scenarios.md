@@ -212,6 +212,33 @@ Fields: Loan Amount (`#amount`), Down Payment (`#downPayment`), From account
 | X4 | P | API parity: balances in the UI match `GET services_proxy/bank/accounts/{id}` |
 | X5 | P | No page shows `Error! An internal error has occurred` during the positive flows |
 
+## 11. REST API — `/parabank/services/bank`
+
+Send `Accept: application/json`; without it, responses come back as XML. Endpoints are
+listed in the WADL at `services/bank?_wadl`. There is **no registration endpoint**, so
+API tests register users through the UI and then call `login/{username}/{password}` to
+get the customer id.
+
+| # | Type | Scenario | Expected / observed |
+|---|------|----------|---------------------|
+| API1 | P | `GET login/{u}/{p}` | 200, customer JSON (id, name, address, phone, ssn) |
+| API2 | N | Login with a wrong password | 400, text `Invalid username and/or password` |
+| API3 | P | `GET customers/{id}/accounts` | 200, `[{id, customerId, type, balance}]` |
+| API4 | P | `GET accounts/{id}` | 200, the same object as in the list |
+| API5 | N | Unknown account / customer / transaction | 400, text `Could not find account #…`, `…customer #…`, `…transaction #…` |
+| API6 | P | `POST transfer?fromAccountId&toAccountId&amount` | 200, **plain text** `Successfully transferred $X from account #A to account #B`, although the header says JSON |
+| API7 | N | Transfer to an unknown account | 400, `Could not find account number A and/or B`; no money moves |
+| API8 | N | Transfer with a non-numeric amount | 404; a missing amount gives 500 with an HTML error page |
+| API9 | P | `POST createAccount?customerId&newAccountType(0=CHECKING,1=SAVINGS)&fromAccountId` | 200; $100 moves to the new account |
+| API10 | P | Transactions: list, by id, `/amount/{n}`, `/fromDate/{d}/toDate/{d}`, `/onDate/{d}`, `/month/{All|name}/type/{All|Credit|Debit}` (dates MM-DD-YYYY) | 200, filtered list; `[]` when nothing matches |
+| API11 | P | A transfer made in the UI shows up in the API balances and transactions | Covered by `tests/api/ui-transfer-api-balance.spec.ts` |
+
+**API environment notes**
+- `cleanDB` and `initializeDB` can be called by anyone without authentication. They
+  probably cause the frequent resets described in §0. Tests must never call them.
+- Cloudflare rate-limits bursts of API calls with HTTP 429 (error 1015, `retry_after: 30`).
+  The API client waits as the server asks, and the `api` project runs on one worker.
+
 ## Defect summary (from exploration)
 
 | ID | Area | Observation |
@@ -228,3 +255,7 @@ Fields: Loan Amount (`#amount`), Down Payment (`#downPayment`), From account
 | D10 | Auth | During resets, any credentials logged into another customer's account (intermittent) |
 | D11 | Bill Pay | ~~Success shown but balance unchanged~~. Not reproducible on a healthy instance; it was a data reset |
 | D12 | A11y | Registration inputs have no programmatic labels (Bill Pay and other forms likely the same, not yet checked) |
+| D13 | API / Security | No authentication: any customer's profile, accounts and transactions can be read, and transfers made, by anonymous callers |
+| D14 | API | `createAccount` responds with `balance: 0`, although the new account holds $100 |
+| D15 | API | Negative and zero transfer amounts are accepted (D1 at the API level) |
+| D16 | API | `transfer` sends plain text with `Content-Type: application/json`; a missing amount gives 500 with HTML instead of 400 |

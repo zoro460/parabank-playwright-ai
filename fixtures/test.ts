@@ -7,6 +7,7 @@ import { OpenAccountPage } from '../pages/OpenAccountPage';
 import { TransferFundsPage } from '../pages/TransferFundsPage';
 import { BillPayPage } from '../pages/BillPayPage';
 import { RequestLoanPage } from '../pages/RequestLoanPage';
+import { ParaBankApi, type Account, type Customer } from '../api/ParaBankApi';
 
 type Fixtures = {
   /** Unique user data for this test; not registered yet. */
@@ -20,6 +21,10 @@ type Fixtures = {
    * second CHECKING account opened from it (which moves the $100 minimum deposit into it).
    */
   twoAccounts: { primaryId: string; secondaryId: string };
+  /** REST API client built on Playwright's `request` fixture. */
+  api: ParaBankApi;
+  /** A freshly registered user, looked up through the API. */
+  apiCustomer: { user: UserData; customer: Customer; accounts: Account[] };
   registerPage: RegisterPage;
   loginPage: LoginPage;
   accountsOverviewPage: AccountsOverviewPage;
@@ -92,6 +97,15 @@ export const test = base.extend<Fixtures>({
     await openAccount.goto();
     const secondaryId = await openAccount.openAccount('CHECKING', primaryId);
     await use({ primaryId, secondaryId });
+  },
+
+  api: async ({ request }, use) => use(new ParaBankApi(request)),
+
+  apiCustomer: async ({ api, registeredUser }, use) => {
+    // The API has no registration endpoint, so `registeredUser` signs up through the UI.
+    const customer = await api.json<Customer>(api.login(registeredUser.username, registeredUser.password));
+    const accounts = await api.json<Account[]>(api.getCustomerAccounts(customer.id));
+    await use({ user: registeredUser, customer, accounts });
   },
 
   registerPage: async ({ page }, use) => use(new RegisterPage(page)),
