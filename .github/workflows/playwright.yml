@@ -31,7 +31,8 @@ jobs:
     # and manual runs cover the full suite.
     - name: Run Playwright tests
       env:
-        GREP: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && '' || '--grep @smoke' }}
+        # The non-empty value must come first: `cond && '' || x` always yields x, since '' is falsy.
+        GREP: ${{ (github.event_name == 'push' || github.event_name == 'pull_request') && '--grep @smoke' || '' }}
       run: npx playwright test --project=api --project=chromium $GREP
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
