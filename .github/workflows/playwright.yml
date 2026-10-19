@@ -4,6 +4,10 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  # Full suite nightly (02:00 IST) and on demand from the Actions tab.
+  schedule:
+    - cron: '30 20 * * *'
+  workflow_dispatch:
 jobs:
   test:
     timeout-minutes: 60
@@ -23,8 +27,12 @@ jobs:
       run: npx playwright install --with-deps chromium
     # The api project also runs on Chromium; firefox and webkit are skipped on CI.
     # Retries (2 on CI) are set in playwright.config.ts because ParaBank is a shared demo site.
+    # Cloudflare rate-limits the demo, so pushes and PRs run only @smoke tests; the nightly
+    # and manual runs cover the full suite.
     - name: Run Playwright tests
-      run: npx playwright test --project=api --project=chromium
+      env:
+        GREP: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && '' || '--grep @smoke' }}
+      run: npx playwright test --project=api --project=chromium $GREP
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:
