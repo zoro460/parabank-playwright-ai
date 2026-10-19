@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
+import { expectLoadedOrSkip } from '../utils/cloudflare';
 
 export type AccountType = 'CHECKING' | 'SAVINGS';
 
@@ -26,7 +27,7 @@ export class OpenAccountPage {
 
   async goto() {
     await this.page.getByRole('link', { name: 'Open New Account' }).click();
-    await expect(this.heading).toBeVisible();
+    await expectLoadedOrSkip(this.page, this.heading, 'Open New Account page');
   }
 
   async openAccount(type: AccountType, fromAccountId?: string) {

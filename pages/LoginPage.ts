@@ -1,4 +1,5 @@
 import { type Locator, type Page } from '@playwright/test';
+import { expectLoadedOrSkip } from '../utils/cloudflare';
 
 export class LoginPage {
   readonly page: Page;
@@ -21,6 +22,7 @@ export class LoginPage {
 
   async goto() {
     await this.page.goto('index.htm');
+    await expectLoadedOrSkip(this.page, this.usernameInput, 'Login page');
   }
 
   async login(username: string, password: string) {

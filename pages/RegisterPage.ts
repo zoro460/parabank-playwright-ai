@@ -1,5 +1,6 @@
 import { type Locator, type Page } from '@playwright/test';
 import { formRow } from './formRow';
+import { expectLoadedOrSkip } from '../utils/cloudflare';
 
 export type UserData = {
   firstName: string;
@@ -25,6 +26,7 @@ export class RegisterPage {
 
   async goto() {
     await this.page.goto('register.htm');
+    await expectLoadedOrSkip(this.page, this.field('First Name:'), 'Register page');
   }
 
   field(label: string): Locator {

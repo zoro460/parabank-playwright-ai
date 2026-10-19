@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
+import { expectLoadedOrSkip } from '../utils/cloudflare';
 import { formRow } from './formRow';
 
 export type Payee = {
@@ -31,7 +32,7 @@ export class BillPayPage {
 
   async goto() {
     await this.page.getByRole('link', { name: 'Bill Pay' }).click();
-    await expect(this.heading).toBeVisible();
+    await expectLoadedOrSkip(this.page, this.heading, 'Bill Pay page');
     await expect(this.fromAccountSelect.getByRole('option')).not.toHaveCount(0);
   }
 
