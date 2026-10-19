@@ -39,36 +39,44 @@ function uniqueUsername(): string {
 }
 
 /**
- * The public demo sits behind a bot check that interrupts automated traffic, far more often
- * from CI runners than from a home connection. Give it a moment to clear on its own; if it
- * does not, skip the test: it is an environment issue, not an app failure, and a skip is not
- * retried, so a blocked run does not burn the full timeout three times over.
+ * The public demo sits behind Cloudflare, which interrupts automated traffic far more often
+ * from CI runners than from a home connection: a bot check that may clear on its own, or a
+ * rate-limit ban (Error 1015) that lasts minutes. Either is an environment issue, not an app
+ * failure, so skip the test; a skip is not retried, so a blocked run does not burn the full
+ * timeout three times over (and retries would only extend the ban).
  */
-async function skipIfBotCheck(page: Page, user: UserData, when: string) {
-  const botCheck = page.getByRole('heading', { name: 'Performing security verification' });
+function cloudflareBlock(page: Page) {
+  return {
+    botCheck: page.getByRole('heading', { name: 'Performing security verification' }),
+    rateLimit: page.getByRole('heading', { name: 'You are being rate limited' }),
+  };
+}
+
+async function skipIfBlocked(page: Page, user: UserData, when: string) {
+  const { botCheck, rateLimit } = cloudflareBlock(page);
+  const blocked = `Registration of ${user.username} was blocked ${when}`;
+  test.skip(await rateLimit.isVisible(), `${blocked} by Cloudflare's rate limit (environment issue, not an app failure).`);
   if (!(await botCheck.isVisible())) return;
   await expect(botCheck).toBeHidden().catch(() => {});
-  test.skip(
-    await botCheck.isVisible(),
-    `Registration of ${user.username} was blocked by the site's bot check ${when} (environment issue, not an app failure).`,
-  );
+  test.skip(await botCheck.isVisible(), `${blocked} by the site's bot check (environment issue, not an app failure).`);
 }
 
 async function registerThroughUi(page: Page, user: UserData) {
   const registerPage = new RegisterPage(page);
-  const botCheck = page.getByRole('heading', { name: 'Performing security verification' });
+  const { botCheck, rateLimit } = cloudflareBlock(page);
+  const anyBlock = botCheck.or(rateLimit);
 
   await registerPage.goto();
   const firstName = registerPage.field('First Name:');
-  await expect(firstName.or(botCheck), 'register page did not load').toBeVisible();
-  await skipIfBotCheck(page, user, 'on the register page');
+  await expect(firstName.or(anyBlock), 'register page did not load').toBeVisible();
+  await skipIfBlocked(page, user, 'on the register page');
 
   await registerPage.fillForm(user);
   await registerPage.registerButton.click();
 
   const welcome = registerPage.welcomeHeading(user.username);
-  await expect(welcome.or(botCheck), `registration of ${user.username} failed`).toBeVisible();
-  await skipIfBotCheck(page, user, 'after submitting');
+  await expect(welcome.or(anyBlock), `registration of ${user.username} failed`).toBeVisible();
+  await skipIfBlocked(page, user, 'after submitting');
   await expect(welcome, `registration of ${user.username} failed`).toBeVisible();
 }
 
