@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
+import { expectLoadedOrSkip } from '../utils/cloudflare';
 import { formRow } from './formRow';
 
 export class RequestLoanPage {
@@ -34,7 +35,7 @@ export class RequestLoanPage {
 
   async goto() {
     await this.page.getByRole('link', { name: 'Request Loan' }).click();
-    await expect(this.heading).toBeVisible();
+    await expectLoadedOrSkip(this.page, this.heading, 'Request Loan page');
     await expect(this.fromAccountSelect.getByRole('option')).not.toHaveCount(0);
   }
 

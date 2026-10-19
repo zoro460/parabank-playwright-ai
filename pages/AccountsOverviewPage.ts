@@ -1,5 +1,6 @@
 import { type Locator, type Page } from '@playwright/test';
 import { parseCurrency } from '../utils/money';
+import { expectLoadedOrSkip } from '../utils/cloudflare';
 
 export class AccountsOverviewPage {
   readonly page: Page;
@@ -21,6 +22,7 @@ export class AccountsOverviewPage {
 
   async goto() {
     await this.page.getByRole('link', { name: 'Accounts Overview' }).click();
+    await expectLoadedOrSkip(this.page, this.heading, 'Accounts Overview page');
   }
 
   welcomeText(fullName: string): Locator {
